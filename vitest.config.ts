@@ -17,6 +17,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // Integration tests share one local Postgres database, so run them
+    // sequentially to avoid cross-file races on create/cleanup.
+    fileParallelism: false,
   },
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },

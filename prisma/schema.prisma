@@ -101,7 +101,7 @@ model LecturaPolea {
   reporteId        String
   reporte          Reporte   @relation(fields: [reporteId], references: [id], onDelete: Cascade)
   poleaId          String
-  polea            Polea     @relation(fields: [poleaId], references: [id])
+  polea            Polea     @relation(fields: [poleaId], references: [id], onDelete: Cascade)
   tempIzquierda    Float
   tempDerecha      Float
   fotoIzquierdaUrl String
