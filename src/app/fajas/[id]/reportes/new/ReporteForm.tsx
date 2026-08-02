@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import type { Condicion } from '@prisma/client'
@@ -20,6 +20,10 @@ interface LecturaFormState {
 
 const CONDICIONES: Condicion[] = ['NORMAL', 'TOLERABLE', 'PRECAUCION', 'CRITICO']
 
+function isLecturaCompleta(lectura: LecturaFormState): boolean {
+  return Boolean(lectura.tempIzquierda && lectura.tempDerecha && lectura.fotoIzquierdaUrl && lectura.fotoDerechaUrl)
+}
+
 export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -37,6 +41,11 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
         { tempIzquierda: '', tempDerecha: '', condicion: 'NORMAL' as Condicion, diagnosticoTexto: '' },
       ])
     )
+  )
+
+  const completadas = useMemo(
+    () => faja.poleas.filter((polea) => isLecturaCompleta(lecturas[polea.id])).length,
+    [faja.poleas, lecturas]
   )
 
   function updateLectura(poleaId: string, patch: Partial<LecturaFormState>) {
@@ -93,44 +102,87 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="sticky top-0 z-10 flex items-center justify-between rounded border bg-white/95 p-3 text-sm shadow-sm backdrop-blur">
+        <span className="font-medium text-gray-700">
+          Progreso: {completadas} de {faja.poleas.length} poleas completas
+        </span>
+        <div className="h-2 w-40 overflow-hidden rounded-full bg-gray-100">
+          <div
+            className="h-full bg-green-500 transition-all"
+            style={{ width: `${(completadas / faja.poleas.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 rounded border bg-white p-4">
-        <input type="date" className="rounded border px-3 py-2" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
-        <input className="rounded border px-3 py-2" placeholder="Nº Aviso SAP" value={numeroAvisoSAP} onChange={(e) => setNumeroAvisoSAP(e.target.value)} required />
-        <input className="rounded border px-3 py-2" placeholder="Especialista" value={especialista} onChange={(e) => setEspecialista(e.target.value)} required />
-        <input className="rounded border px-3 py-2" placeholder="Supervisor" value={supervisor} onChange={(e) => setSupervisor(e.target.value)} required />
-        <input className="col-span-2 rounded border px-3 py-2" placeholder="Observación general" value={observacionGeneral} onChange={(e) => setObservacionGeneral(e.target.value)} />
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-600">Fecha</span>
+          <input type="date" className="w-full rounded border px-3 py-2" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-600">Nº Aviso SAP</span>
+          <input className="w-full rounded border px-3 py-2" value={numeroAvisoSAP} onChange={(e) => setNumeroAvisoSAP(e.target.value)} required />
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-600">Especialista</span>
+          <input className="w-full rounded border px-3 py-2" value={especialista} onChange={(e) => setEspecialista(e.target.value)} required />
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-gray-600">Supervisor</span>
+          <input className="w-full rounded border px-3 py-2" value={supervisor} onChange={(e) => setSupervisor(e.target.value)} required />
+        </label>
+        <label className="col-span-2 text-sm">
+          <span className="mb-1 block text-gray-600">Observación general</span>
+          <input className="w-full rounded border px-3 py-2" value={observacionGeneral} onChange={(e) => setObservacionGeneral(e.target.value)} />
+        </label>
       </div>
 
       {faja.poleas.map((polea) => {
         const lectura = lecturas[polea.id]
+        const completa = isLecturaCompleta(lectura)
         return (
-          <div key={polea.id} className="space-y-3 rounded border bg-white p-4">
-            <h3 className="font-medium">Polea {polea.numero}{polea.tipo ? ` — ${polea.tipo}` : ''}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                type="number" step="0.1"
-                className="rounded border px-3 py-2"
-                placeholder="Temp. izquierda (°C)"
-                value={lectura.tempIzquierda}
-                onChange={(e) => updateLectura(polea.id, { tempIzquierda: e.target.value })}
-                required
-              />
-              <input
-                type="number" step="0.1"
-                className="rounded border px-3 py-2"
-                placeholder="Temp. derecha (°C)"
-                value={lectura.tempDerecha}
-                onChange={(e) => updateLectura(polea.id, { tempDerecha: e.target.value })}
-                required
-              />
+          <div
+            key={polea.id}
+            className={`space-y-3 rounded border bg-white p-4 transition ${completa ? 'border-green-300' : ''}`}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium">Polea {polea.numero}{polea.tipo ? ` — ${polea.tipo}` : ''}</h3>
+              <span className={`rounded-full px-2 py-1 text-xs font-medium ${completa ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                {completa ? '✓ Completo' : 'Pendiente'}
+              </span>
             </div>
-            <select
-              className="rounded border px-3 py-2"
-              value={lectura.condicion}
-              onChange={(e) => updateLectura(polea.id, { condicion: e.target.value as Condicion })}
-            >
-              {CONDICIONES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-sm">
+                <span className="mb-1 block text-gray-600">Temp. izquierda (°C)</span>
+                <input
+                  type="number" step="0.1"
+                  className="w-full rounded border px-3 py-2"
+                  value={lectura.tempIzquierda}
+                  onChange={(e) => updateLectura(polea.id, { tempIzquierda: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-gray-600">Temp. derecha (°C)</span>
+                <input
+                  type="number" step="0.1"
+                  className="w-full rounded border px-3 py-2"
+                  value={lectura.tempDerecha}
+                  onChange={(e) => updateLectura(polea.id, { tempDerecha: e.target.value })}
+                  required
+                />
+              </label>
+            </div>
+            <label className="block text-sm">
+              <span className="mb-1 block text-gray-600">Condición</span>
+              <select
+                className="rounded border px-3 py-2"
+                value={lectura.condicion}
+                onChange={(e) => updateLectura(polea.id, { condicion: e.target.value as Condicion })}
+              >
+                {CONDICIONES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
             <div className="grid grid-cols-2 gap-3">
               <ImageUploader
                 folder={`insp-predictivo/reportes/${faja.tag}`}
@@ -145,18 +197,25 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
                 label="Foto derecha"
               />
             </div>
-            <textarea
-              className="w-full rounded border px-3 py-2"
-              rows={4}
-              value={lectura.diagnosticoTexto}
-              onChange={(e) => updateLectura(polea.id, { diagnosticoTexto: e.target.value })}
-            />
+            <label className="block text-sm">
+              <span className="mb-1 block text-gray-600">Diagnóstico</span>
+              <textarea
+                className="w-full rounded border px-3 py-2"
+                rows={4}
+                value={lectura.diagnosticoTexto}
+                onChange={(e) => updateLectura(polea.id, { diagnosticoTexto: e.target.value })}
+              />
+            </label>
           </div>
         )
       })}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" disabled={submitting} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50">
+      {error && <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded bg-blue-600 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
         {submitting ? 'Guardando...' : 'Guardar reporte'}
       </button>
     </form>

@@ -13,10 +13,19 @@ export function CriterioEditor({ criterio }: { criterio: CriterioAceptacion }) {
     deltaMin: criterio.deltaMin,
     deltaMax: criterio.deltaMax,
   })
+  const [saved, setSaved] = useState(false)
 
   async function handleBlur() {
+    const unchanged =
+      values.tempMin === criterio.tempMin &&
+      values.tempMax === criterio.tempMax &&
+      values.deltaMin === criterio.deltaMin &&
+      values.deltaMax === criterio.deltaMax
+    if (unchanged) return
     await updateCriterio(criterio.id, values)
     router.refresh()
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
   }
 
   return (
@@ -33,6 +42,7 @@ export function CriterioEditor({ criterio }: { criterio: CriterioAceptacion }) {
           />
         </td>
       ))}
+      <td className="px-2 py-1 text-xs text-green-600">{saved && 'Guardado ✓'}</td>
     </tr>
   )
 }

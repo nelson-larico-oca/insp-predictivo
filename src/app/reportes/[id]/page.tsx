@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
+import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getReporteById } from '@/server/actions/reportes'
@@ -16,6 +17,9 @@ export default async function ReporteDetailPage({ params }: { params: { id: stri
 
   return (
     <main className="mx-auto max-w-3xl space-y-4 p-6">
+      <Link href={`/fajas/${reporte.fajaId}`} className="text-sm text-gray-500 hover:text-blue-700">
+        ← Volver a {reporte.faja.tag}
+      </Link>
       <ReporteHeader reporte={reporte} />
       {reporte.faja.esquemaUrl && (
         // eslint-disable-next-line @next/next/no-img-element

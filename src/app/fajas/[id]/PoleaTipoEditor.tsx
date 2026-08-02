@@ -8,11 +8,14 @@ import { updatePoleaTipo } from '@/server/actions/fajas'
 export function PoleaTipoEditor({ polea }: { polea: Polea }) {
   const router = useRouter()
   const [tipo, setTipo] = useState(polea.tipo ?? '')
+  const [saved, setSaved] = useState(false)
 
   async function handleBlur() {
     if (tipo !== (polea.tipo ?? '')) {
       await updatePoleaTipo(polea.id, tipo)
       router.refresh()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1500)
     }
   }
 
@@ -26,6 +29,7 @@ export function PoleaTipoEditor({ polea }: { polea: Polea }) {
         onChange={(e) => setTipo(e.target.value)}
         onBlur={handleBlur}
       />
+      {saved && <span className="text-xs text-green-600">Guardado ✓</span>}
     </div>
   )
 }
