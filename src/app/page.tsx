@@ -1,7 +1,8 @@
-export default function HomePage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <h1 className="text-2xl font-semibold">Inspección Predictiva</h1>
-    </main>
-  )
+import { redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+
+export default async function HomePage() {
+  const session = await getServerSession(authOptions)
+  redirect(session ? '/fajas' : '/login')
 }
