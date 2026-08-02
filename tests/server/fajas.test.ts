@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { prisma } from '../../src/lib/prisma'
-import { createFaja, getFajaById } from '../../src/server/actions/fajas'
+import { createFaja, getFajaById, updateFajaImagenes } from '../../src/server/actions/fajas'
 
 async function makeClienteYContratista() {
   const cliente = await prisma.cliente.create({ data: { nombre: 'Test Cliente Faja' } })
@@ -35,6 +35,26 @@ describe('createFaja', () => {
     expect(detalle?.criterios.map((c) => c.nivel).sort()).toEqual(
       ['CRITICO', 'NORMAL', 'PRECAUCION', 'TOLERABLE'].sort()
     )
+  })
+
+  it('stores the criteriosImagenUrl when provided and allows updating it later', async () => {
+    const { cliente, contratista } = await makeClienteYContratista()
+    const faja = await createFaja({
+      clienteId: cliente.id,
+      contratistaId: contratista.id,
+      area: '9999',
+      nombre: 'CV003',
+      lugar: 'MOQUEGUA',
+      numeroPoleas: 1,
+      criteriosImagenUrl: 'https://res.cloudinary.com/demo/criterios-v1.jpg',
+      createdByUserId: 'test-user',
+    })
+    expect(faja.criteriosImagenUrl).toBe('https://res.cloudinary.com/demo/criterios-v1.jpg')
+
+    const updated = await updateFajaImagenes(faja.id, {
+      criteriosImagenUrl: 'https://res.cloudinary.com/demo/criterios-v2.jpg',
+    })
+    expect(updated.criteriosImagenUrl).toBe('https://res.cloudinary.com/demo/criterios-v2.jpg')
   })
 
   it('rejects a duplicate tag with a friendly error', async () => {

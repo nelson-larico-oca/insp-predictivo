@@ -21,6 +21,7 @@ export interface CreateFajaInput {
   descripcion?: string
   numeroPoleas: number
   esquemaUrl?: string
+  criteriosImagenUrl?: string
   createdByUserId: string
 }
 
@@ -46,6 +47,7 @@ export async function createFaja(input: CreateFajaInput): Promise<Faja> {
       descripcion: input.descripcion,
       numeroPoleas: input.numeroPoleas,
       esquemaUrl: input.esquemaUrl,
+      criteriosImagenUrl: input.criteriosImagenUrl,
       createdByUserId: input.createdByUserId,
       poleas: {
         create: Array.from({ length: input.numeroPoleas }, (_, index) => ({ numero: index + 1 })),
@@ -82,6 +84,15 @@ export type FajaConDetalle = NonNullable<Awaited<ReturnType<typeof getFajaById>>
 export async function updatePoleaTipo(poleaId: string, tipo: string) {
   const updated = await prisma.polea.update({ where: { id: poleaId }, data: { tipo } })
   safeRevalidatePath(`/fajas/${updated.fajaId}`)
+  return updated
+}
+
+export async function updateFajaImagenes(
+  fajaId: string,
+  data: { esquemaUrl?: string; criteriosImagenUrl?: string }
+) {
+  const updated = await prisma.faja.update({ where: { id: fajaId }, data })
+  safeRevalidatePath(`/fajas/${fajaId}`)
   return updated
 }
 

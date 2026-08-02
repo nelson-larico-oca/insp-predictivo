@@ -23,13 +23,16 @@ export function FajaForm({ clientes, contratistas, currentUserId }: FajaFormProp
   const [descripcion, setDescripcion] = useState('')
   const [numeroPoleas, setNumeroPoleas] = useState(5)
   const [esquemaUrl, setEsquemaUrl] = useState<string>()
+  const [criteriosImagenUrl, setCriteriosImagenUrl] = useState<string>()
   const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const tagPreview = useMemo(() => (area && nombre ? computeTag(area, nombre) : ''), [area, nombre])
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     setError(null)
+    setSubmitting(true)
     try {
       const faja = await createFaja({
         clienteId,
@@ -40,11 +43,13 @@ export function FajaForm({ clientes, contratistas, currentUserId }: FajaFormProp
         descripcion: descripcion || undefined,
         numeroPoleas,
         esquemaUrl,
+        criteriosImagenUrl,
         createdByUserId: currentUserId,
       })
       router.push(`/fajas/${faja.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear la faja')
+      setSubmitting(false)
     }
   }
 
@@ -61,24 +66,46 @@ export function FajaForm({ clientes, contratistas, currentUserId }: FajaFormProp
   return (
     <form onSubmit={handleSubmit} className="space-y-3 rounded border bg-white p-4">
       <div className="grid grid-cols-2 gap-3">
-        <select className="rounded border px-3 py-2" value={clienteId} onChange={(e) => setClienteId(e.target.value)} required>
-          {clientes.map((c) => (
-            <option key={c.id} value={c.id}>{c.nombre}</option>
-          ))}
-        </select>
-        <select className="rounded border px-3 py-2" value={contratistaId} onChange={(e) => setContratistaId(e.target.value)} required>
-          {contratistas.map((c) => (
-            <option key={c.id} value={c.id}>{c.nombre}</option>
-          ))}
-        </select>
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Cliente</span>
+          <select className="w-full rounded border px-3 py-2" value={clienteId} onChange={(e) => setClienteId(e.target.value)} required>
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Contratista</span>
+          <select className="w-full rounded border px-3 py-2" value={contratistaId} onChange={(e) => setContratistaId(e.target.value)} required>
+            {contratistas.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </label>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <input className="rounded border px-3 py-2" placeholder="Área (ej. 3220)" value={area} onChange={(e) => setArea(e.target.value)} required />
-        <input className="rounded border px-3 py-2" placeholder="Nombre (ej. CV001)" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Área</span>
+          <input className="w-full rounded border px-3 py-2" placeholder="ej. 3220" value={area} onChange={(e) => setArea(e.target.value)} required />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-gray-600">Nombre</span>
+          <input className="w-full rounded border px-3 py-2" placeholder="ej. CV001" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+        </label>
       </div>
-      {tagPreview && <p className="text-sm text-gray-500">Tag: <strong>{tagPreview}</strong></p>}
-      <input className="w-full rounded border px-3 py-2" placeholder="Lugar" value={lugar} onChange={(e) => setLugar(e.target.value)} required />
-      <input className="w-full rounded border px-3 py-2" placeholder="Descripción (opcional)" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+      {tagPreview && (
+        <p className="rounded bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          Tag de la faja: <strong>{tagPreview}</strong>
+        </p>
+      )}
+      <label className="block text-sm">
+        <span className="mb-1 block text-gray-600">Lugar</span>
+        <input className="w-full rounded border px-3 py-2" placeholder="ej. MOQUEGUA" value={lugar} onChange={(e) => setLugar(e.target.value)} required />
+      </label>
+      <label className="block text-sm">
+        <span className="mb-1 block text-gray-600">Descripción (opcional)</span>
+        <input className="w-full rounded border px-3 py-2" placeholder="ej. Faja transportadora Pebbles" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+      </label>
       <label className="block text-sm font-medium">
         Número de poleas
         <input
@@ -89,10 +116,25 @@ export function FajaForm({ clientes, contratistas, currentUserId }: FajaFormProp
           onChange={(e) => setNumeroPoleas(Number(e.target.value))}
           required
         />
+        <span className="mt-1 block text-xs font-normal text-gray-500">
+          Se crearán {numeroPoleas} polea(s), cada una con chumacera izquierda y derecha.
+        </span>
       </label>
       <ImageUploader folder="insp-predictivo/esquemas" value={esquemaUrl} onUploaded={setEsquemaUrl} label="Esquema de ubicación de poleas" />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" className="rounded bg-blue-600 px-3 py-2 text-white">Crear faja</button>
+      <ImageUploader
+        folder="insp-predictivo/criterios"
+        value={criteriosImagenUrl}
+        onUploaded={setCriteriosImagenUrl}
+        label="Imagen de criterios de aceptación (opcional, como referencia visual)"
+      />
+      {error && <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded bg-blue-600 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {submitting ? 'Creando faja...' : 'Crear faja'}
+      </button>
     </form>
   )
 }

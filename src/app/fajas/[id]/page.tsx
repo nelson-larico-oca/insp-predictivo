@@ -5,6 +5,7 @@ import { getHistoricoByFaja } from '@/lib/historico'
 import { PoleaTipoEditor } from './PoleaTipoEditor'
 import { CriterioEditor } from './CriterioEditor'
 import { DeleteFajaButton } from './DeleteFajaButton'
+import { FajaImagenesEditor } from './FajaImagenesEditor'
 import { HistoricoTable } from '@/components/HistoricoTable'
 import { TrendChart } from '@/components/TrendChart'
 
@@ -26,10 +27,14 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
         </Link>
       </div>
 
-      {faja.esquemaUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={faja.esquemaUrl} alt="Esquema de poleas" className="max-w-full rounded border" />
-      )}
+      <section>
+        <h2 className="mb-2 font-medium">Imágenes de referencia</h2>
+        <FajaImagenesEditor
+          fajaId={faja.id}
+          esquemaUrl={faja.esquemaUrl}
+          criteriosImagenUrl={faja.criteriosImagenUrl}
+        />
+      </section>
 
       <section>
         <h2 className="mb-2 font-medium">Poleas</h2>

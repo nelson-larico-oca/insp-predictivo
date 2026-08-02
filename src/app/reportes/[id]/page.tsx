@@ -22,6 +22,10 @@ export default async function ReporteDetailPage({ params }: { params: { id: stri
         <img src={reporte.faja.esquemaUrl} alt="Esquema de poleas" className="max-w-full rounded border" />
       )}
       <CriterioTable criterios={reporte.faja.criterios} />
+      {reporte.faja.criteriosImagenUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={reporte.faja.criteriosImagenUrl} alt="Criterios de aceptación (documento original)" className="max-w-full rounded border" />
+      )}
       {reporte.lecturas.map((lectura) => (
         <PoleaDiagnosticoBlock key={lectura.id} lectura={lectura} />
       ))}
