@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Condicion {
+  NORMAL
+  TOLERABLE
+  PRECAUCION
+  CRITICO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Cliente {
+  id      String @id @default(cuid())
+  nombre  String
+  logoUrl String?
+  fajas   Faja[]
+}
+
+model Contratista {
+  id      String @id @default(cuid())
+  nombre  String
+  logoUrl String?
+  fajas   Faja[]
+}
+
+model Faja {
+  id              String               @id @default(cuid())
+  clienteId       String
+  cliente         Cliente              @relation(fields: [clienteId], references: [id])
+  contratistaId   String
+  contratista     Contratista          @relation(fields: [contratistaId], references: [id])
+  area            String
+  nombre          String
+  tag             String               @unique
+  lugar           String
+  descripcion     String?
+  numeroPoleas    Int
+  esquemaUrl      String?
+  createdByUserId String
+  createdAt       DateTime             @default(now())
+  poleas          Polea[]
+  criterios       CriterioAceptacion[]
+  reportes        Reporte[]
+}
+
+model CriterioAceptacion {
+  id       String    @id @default(cuid())
+  fajaId   String
+  faja     Faja      @relation(fields: [fajaId], references: [id], onDelete: Cascade)
+  nivel    Condicion
+  tempMin  Float
+  tempMax  Float
+  deltaMin Float
+  deltaMax Float
+  color    String
+
+  @@unique([fajaId, nivel])
+}
+
+model Polea {
+  id       String         @id @default(cuid())
+  fajaId   String
+  faja     Faja           @relation(fields: [fajaId], references: [id], onDelete: Cascade)
+  numero   Int
+  tipo     String?
+  lecturas LecturaPolea[]
+
+  @@unique([fajaId, numero])
+}
+
+model Reporte {
+  id                 String         @id @default(cuid())
+  fajaId             String
+  faja               Faja           @relation(fields: [fajaId], references: [id], onDelete: Cascade)
+  fecha              DateTime
+  especialista       String
+  supervisor         String
+  numeroAvisoSAP     String
+  condicionGeneral   Condicion
+  observacionGeneral String         @default("Equipo sin indicaciones")
+  createdByUserId    String
+  createdAt          DateTime       @default(now())
+  lecturas           LecturaPolea[]
+}
+
+model LecturaPolea {
+  id               String    @id @default(cuid())
+  reporteId        String
+  reporte          Reporte   @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+  poleaId          String
+  polea            Polea     @relation(fields: [poleaId], references: [id])
+  tempIzquierda    Float
+  tempDerecha      Float
+  fotoIzquierdaUrl String
+  fotoDerechaUrl   String
+  condicion        Condicion
+  diagnosticoTexto String
+
+  @@unique([reporteId, poleaId])
+}
