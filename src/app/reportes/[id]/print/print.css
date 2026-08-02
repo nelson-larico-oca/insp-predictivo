@@ -1,0 +1,9 @@
+@media print {
+  .polea-block,
+  .trend-chart {
+    page-break-inside: avoid;
+  }
+  .historico-section {
+    page-break-before: always;
+  }
+}
