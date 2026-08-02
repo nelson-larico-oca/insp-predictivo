@@ -1,14 +1,18 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getFajaById, countReportesByFaja } from '@/server/actions/fajas'
+import { getHistoricoByFaja } from '@/lib/historico'
 import { PoleaTipoEditor } from './PoleaTipoEditor'
 import { CriterioEditor } from './CriterioEditor'
 import { DeleteFajaButton } from './DeleteFajaButton'
+import { HistoricoTable } from '@/components/HistoricoTable'
+import { TrendChart } from '@/components/TrendChart'
 
 export default async function FajaDetailPage({ params }: { params: { id: string } }) {
   const faja = await getFajaById(params.id)
   if (!faja) notFound()
   const reportesCount = await countReportesByFaja(faja.id)
+  const historico = await getHistoricoByFaja(faja.id)
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
@@ -67,6 +71,20 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
             </li>
           ))}
         </ul>
+      </section>
+
+      <section>
+        <h2 className="mb-2 font-medium">Histórico de temperatura</h2>
+        <HistoricoTable historico={historico} />
+      </section>
+
+      <section>
+        <h2 className="mb-2 font-medium">Tendencias</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {historico.map((polea) => (
+            <TrendChart key={polea.poleaId} polea={polea} />
+          ))}
+        </div>
       </section>
 
       <DeleteFajaButton fajaId={faja.id} reportesCount={reportesCount} />
