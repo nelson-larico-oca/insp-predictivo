@@ -8,7 +8,7 @@ export function PoleaDiagnosticoBlock({ lectura }: { lectura: Lectura }) {
       <div className="bg-blue-900 p-2 text-sm font-semibold text-white">
         DIAGNÓSTICO POLEA {String(lectura.polea.numero).padStart(2, '0')}
       </div>
-      <div className="grid grid-cols-2 gap-4 p-4">
+      <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
         <p className="whitespace-pre-line text-sm">{lectura.diagnosticoTexto}</p>
         <div className="grid grid-cols-2 gap-2">
           <figure>

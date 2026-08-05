@@ -1,12 +1,15 @@
 import type { NextAuthOptions } from 'next-auth'
+import { getServerSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
+import type { Role } from '@prisma/client'
 
 export interface AuthenticatedUser {
   id: string
   name: string
   email: string
+  role: Role
 }
 
 export async function verifyCredentials(
@@ -17,7 +20,7 @@ export async function verifyCredentials(
   if (!user) return null
   const valid = await bcrypt.compare(password, user.passwordHash)
   if (!valid) return null
-  return { id: user.id, name: user.name, email: user.email }
+  return { id: user.id, name: user.name, email: user.email, role: user.role }
 }
 
 export const authOptions: NextAuthOptions = {
@@ -38,12 +41,26 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = (user as AuthenticatedUser).id
+      if (user) {
+        token.id = (user as AuthenticatedUser).id
+        token.role = (user as AuthenticatedUser).role
+      }
       return token
     },
     async session({ session, token }) {
-      if (session.user) (session.user as { id?: string }).id = token.id as string
+      if (session.user) {
+        session.user.id = token.id
+        session.user.role = token.role
+      }
       return session
     },
   },
+}
+
+export async function requireAdmin() {
+  const session = await getServerSession(authOptions)
+  if (session?.user?.role !== 'ADMIN') {
+    throw new Error('No autorizado: se requiere rol de administrador')
+  }
+  return session.user
 }

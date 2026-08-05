@@ -102,11 +102,11 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="sticky top-0 z-10 flex items-center justify-between rounded border bg-white/95 p-3 text-sm shadow-sm backdrop-blur">
+      <div className="sticky top-0 z-10 flex flex-col gap-2 rounded border bg-white/95 p-3 text-sm shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <span className="font-medium text-gray-700">
           Progreso: {completadas} de {faja.poleas.length} poleas completas
         </span>
-        <div className="h-2 w-40 overflow-hidden rounded-full bg-gray-100">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 sm:w-40">
           <div
             className="h-full bg-green-500 transition-all"
             style={{ width: `${(completadas / faja.poleas.length) * 100}%` }}
@@ -114,7 +114,7 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 rounded border bg-white p-4">
+      <div className="grid grid-cols-1 gap-3 rounded border bg-white p-4 sm:grid-cols-2">
         <label className="text-sm">
           <span className="mb-1 block text-gray-600">Fecha</span>
           <input type="date" className="w-full rounded border px-3 py-2" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
@@ -131,7 +131,7 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
           <span className="mb-1 block text-gray-600">Supervisor</span>
           <input className="w-full rounded border px-3 py-2" value={supervisor} onChange={(e) => setSupervisor(e.target.value)} required />
         </label>
-        <label className="col-span-2 text-sm">
+        <label className="sm:col-span-2 text-sm">
           <span className="mb-1 block text-gray-600">Observación general</span>
           <input className="w-full rounded border px-3 py-2" value={observacionGeneral} onChange={(e) => setObservacionGeneral(e.target.value)} />
         </label>
@@ -151,7 +151,7 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
                 {completa ? '✓ Completo' : 'Pendiente'}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="text-sm">
                 <span className="mb-1 block text-gray-600">Temp. izquierda (°C)</span>
                 <input
@@ -183,7 +183,7 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
                 {CONDICIONES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <ImageUploader
                 folder={`insp-predictivo/reportes/${faja.tag}`}
                 value={lectura.fotoIzquierdaUrl}

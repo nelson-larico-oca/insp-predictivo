@@ -16,7 +16,7 @@ export default async function ReporteDetailPage({ params }: { params: { id: stri
   if (!reporte) notFound()
 
   return (
-    <main className="mx-auto max-w-3xl space-y-4 p-6">
+    <main className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
       <Link href={`/fajas/${reporte.fajaId}`} className="text-sm text-gray-500 hover:text-blue-700">
         ← Volver a {reporte.faja.tag}
       </Link>
@@ -33,10 +33,10 @@ export default async function ReporteDetailPage({ params }: { params: { id: stri
       {reporte.lecturas.map((lectura) => (
         <PoleaDiagnosticoBlock key={lectura.id} lectura={lectura} />
       ))}
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <a
           href={`/api/reportes/${reporte.id}/pdf`}
-          className="inline-block rounded bg-blue-600 px-4 py-2 text-white"
+          className="inline-block rounded bg-blue-600 px-4 py-2 text-center text-white"
         >
           Descargar PDF
         </a>

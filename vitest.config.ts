@@ -17,9 +17,12 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
-    // Integration tests share one local Postgres database, so run them
+    // Integration tests share one Postgres database (Neon), so run them
     // sequentially to avoid cross-file races on create/cleanup.
     fileParallelism: false,
+    // Neon can take a moment to wake a suspended connection, so allow more
+    // headroom than vitest's 5s default.
+    testTimeout: 20000,
   },
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },

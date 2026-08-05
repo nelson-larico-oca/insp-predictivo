@@ -65,7 +65,7 @@ export function FajaForm({ clientes, contratistas, currentUserId }: FajaFormProp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 rounded border bg-white p-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           <span className="mb-1 block text-gray-600">Cliente</span>
           <select className="w-full rounded border px-3 py-2" value={clienteId} onChange={(e) => setClienteId(e.target.value)} required>
@@ -83,7 +83,7 @@ export function FajaForm({ clientes, contratistas, currentUserId }: FajaFormProp
           </select>
         </label>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           <span className="mb-1 block text-gray-600">Área</span>
           <input className="w-full rounded border px-3 py-2" placeholder="ej. 3220" value={area} onChange={(e) => setArea(e.target.value)} required />

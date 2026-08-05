@@ -1,8 +1,28 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import puppeteer from 'puppeteer'
+import type { Browser } from 'puppeteer-core'
 import { authOptions } from '@/lib/auth'
 import { generatePrintToken } from '@/lib/printToken'
+
+export const runtime = 'nodejs'
+export const maxDuration = 60
+
+async function launchBrowser(): Promise<Browser> {
+  if (process.env.VERCEL) {
+    const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
+      import('@sparticuz/chromium'),
+      import('puppeteer-core'),
+    ])
+    return puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    })
+  }
+
+  const { default: puppeteer } = await import('puppeteer')
+  return puppeteer.launch({ headless: true })
+}
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -14,7 +34,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const token = generatePrintToken(params.id)
   const printUrl = `${baseUrl}/reportes/${params.id}/print?token=${token}`
 
-  const browser = await puppeteer.launch({ headless: true })
+  const browser = await launchBrowser()
   try {
     const page = await browser.newPage()
     const response = await page.goto(printUrl, { waitUntil: 'networkidle0', timeout: 30000 })

@@ -4,7 +4,7 @@ import { ContratistaForm } from './ContratistaForm'
 export default async function ContratistasPage() {
   const contratistas = await listContratistas()
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
+    <main className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
       <h1 className="text-xl font-semibold">Contratistas</h1>
       <ContratistaForm />
       {contratistas.length === 0 ? (

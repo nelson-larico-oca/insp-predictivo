@@ -4,10 +4,10 @@ import { listFajas } from '@/server/actions/fajas'
 export default async function FajasPage() {
   const fajas = await listFajas()
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold">Fajas</h1>
-        <Link href="/fajas/new" className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+        <Link href="/fajas/new" className="rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700">
           + Nueva faja
         </Link>
       </div>

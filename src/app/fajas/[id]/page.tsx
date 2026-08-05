@@ -17,17 +17,20 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
   const historico = await getHistoricoByFaja(faja.id)
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-6">
+    <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
       <div>
         <Link href="/fajas" className="text-sm text-gray-500 hover:text-blue-700">← Volver a fajas</Link>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold">{faja.tag}</h1>
           <p className="text-sm text-gray-500">{faja.cliente.nombre} · {faja.lugar} · {faja.numeroPoleas} polea(s)</p>
         </div>
-        <Link href={`/fajas/${faja.id}/reportes/new`} className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+        <Link
+          href={`/fajas/${faja.id}/reportes/new`}
+          className="rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
+        >
           + Crear reporte
         </Link>
       </div>
@@ -52,23 +55,25 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
 
       <section>
         <h2 className="mb-2 font-medium">Criterios de aceptación</h2>
-        <table className="w-full rounded border bg-white text-sm">
-          <thead>
-            <tr className="text-left">
-              <th className="px-2 py-1">Nivel</th>
-              <th className="px-2 py-1">Temp min</th>
-              <th className="px-2 py-1">Temp max</th>
-              <th className="px-2 py-1">Delta min</th>
-              <th className="px-2 py-1">Delta max</th>
-              <th className="px-2 py-1"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {faja.criterios.map((criterio) => (
-              <CriterioEditor key={criterio.id} criterio={criterio} />
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto rounded border bg-white">
+          <table className="w-full min-w-[520px] text-sm">
+            <thead>
+              <tr className="text-left">
+                <th className="px-2 py-1">Nivel</th>
+                <th className="px-2 py-1">Temp min</th>
+                <th className="px-2 py-1">Temp max</th>
+                <th className="px-2 py-1">Delta min</th>
+                <th className="px-2 py-1">Delta max</th>
+                <th className="px-2 py-1"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {faja.criterios.map((criterio) => (
+                <CriterioEditor key={criterio.id} criterio={criterio} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section>
@@ -106,7 +111,7 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
 
           <section>
             <h2 className="mb-2 font-medium">Tendencias</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {historico.map((polea) => (
                 <TrendChart key={polea.poleaId} polea={polea} />
               ))}
