@@ -10,9 +10,9 @@ describe('computeDelta', () => {
 
 describe('worstCondicion', () => {
   it('returns the most severe condicion in the list', () => {
-    expect(worstCondicion(['NORMAL', 'TOLERABLE', 'NORMAL'])).toBe('TOLERABLE')
-    expect(worstCondicion(['CRITICO', 'NORMAL'])).toBe('CRITICO')
-    expect(worstCondicion(['NORMAL'])).toBe('NORMAL')
+    expect(worstCondicion(['BUENO', 'ACEPTABLE', 'BUENO'])).toBe('ACEPTABLE')
+    expect(worstCondicion(['INACEPTABLE', 'BUENO'])).toBe('INACEPTABLE')
+    expect(worstCondicion(['BUENO'])).toBe('BUENO')
   })
 
   it('throws when given an empty list', () => {
@@ -23,7 +23,7 @@ describe('worstCondicion', () => {
 describe('CONDICION_COLORS', () => {
   it('has an entry for every condicion level', () => {
     expect(Object.keys(CONDICION_COLORS).sort()).toEqual(
-      ['CRITICO', 'NORMAL', 'PRECAUCION', 'TOLERABLE'].sort()
+      ['ACEPTABLE', 'BUENO', 'INACEPTABLE', 'INSATISFACTORIO'].sort()
     )
   })
 })

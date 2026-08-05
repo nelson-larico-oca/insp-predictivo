@@ -16,6 +16,7 @@ if (fs.existsSync(envPath)) {
 export default defineConfig({
   test: {
     environment: 'node',
+    setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.ts'],
     // Integration tests share one Postgres database (Neon), so run them
     // sequentially to avoid cross-file races on create/cleanup.

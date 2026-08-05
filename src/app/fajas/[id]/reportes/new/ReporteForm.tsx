@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import type { Condicion } from '@prisma/client'
 import type { FajaConDetalle } from '@/server/actions/fajas'
 import { ImageUploader } from '@/components/ImageUploader'
 import { createReporte } from '@/server/actions/reportes'
+import { analizarTermograma, generarObservacionGeneral } from '@/server/actions/ai'
 import { buildDiagnosticoTexto } from '@/lib/diagnosticoTemplate'
 
 interface LecturaFormState {
@@ -16,29 +16,38 @@ interface LecturaFormState {
   fotoDerechaUrl?: string
   condicion: Condicion
   diagnosticoTexto: string
+  analizando?: boolean
+  analisisError?: string
 }
 
-const CONDICIONES: Condicion[] = ['NORMAL', 'TOLERABLE', 'PRECAUCION', 'CRITICO']
+const CONDICIONES: Condicion[] = ['BUENO', 'ACEPTABLE', 'INSATISFACTORIO', 'INACEPTABLE']
 
 function isLecturaCompleta(lectura: LecturaFormState): boolean {
   return Boolean(lectura.tempIzquierda && lectura.tempDerecha && lectura.fotoIzquierdaUrl && lectura.fotoDerechaUrl)
 }
 
-export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
+interface ReporteFormProps {
+  faja: FajaConDetalle
+  currentUserName: string
+  supervisores: { id: string; name: string }[]
+}
+
+export function ReporteForm({ faja, currentUserName, supervisores }: ReporteFormProps) {
   const router = useRouter()
-  const { data: session } = useSession()
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
-  const [especialista, setEspecialista] = useState('')
-  const [supervisor, setSupervisor] = useState('')
+  const [especialista, setEspecialista] = useState(currentUserName)
+  const [supervisor, setSupervisor] = useState(supervisores[0]?.name ?? '')
   const [numeroAvisoSAP, setNumeroAvisoSAP] = useState('')
   const [observacionGeneral, setObservacionGeneral] = useState('Equipo sin indicaciones')
+  const [generandoObservacion, setGenerandoObservacion] = useState(false)
+  const [observacionError, setObservacionError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [lecturas, setLecturas] = useState<Record<string, LecturaFormState>>(
     Object.fromEntries(
       faja.poleas.map((polea) => [
         polea.id,
-        { tempIzquierda: '', tempDerecha: '', condicion: 'NORMAL' as Condicion, diagnosticoTexto: '' },
+        { tempIzquierda: '', tempDerecha: '', condicion: 'BUENO' as Condicion, diagnosticoTexto: '' },
       ])
     )
   )
@@ -66,6 +75,56 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
     })
   }
 
+  async function handleAnalizar(poleaId: string) {
+    const lectura = lecturas[poleaId]
+    if (!lectura.fotoIzquierdaUrl || !lectura.fotoDerechaUrl) return
+    const polea = faja.poleas.find((p) => p.id === poleaId)!
+    setLecturas((prev) => ({ ...prev, [poleaId]: { ...prev[poleaId], analizando: true, analisisError: undefined } }))
+    try {
+      const resultado = await analizarTermograma({
+        numeroPolea: polea.numero,
+        fotoIzquierdaUrl: lectura.fotoIzquierdaUrl,
+        fotoDerechaUrl: lectura.fotoDerechaUrl,
+        criterios: faja.criterios,
+      })
+      updateLectura(poleaId, {
+        tempIzquierda: String(resultado.tempIzquierda),
+        tempDerecha: String(resultado.tempDerecha),
+        condicion: resultado.condicion,
+        diagnosticoTexto: resultado.diagnosticoTexto,
+      })
+    } catch (err) {
+      setLecturas((prev) => ({
+        ...prev,
+        [poleaId]: { ...prev[poleaId], analisisError: err instanceof Error ? err.message : 'Error al analizar la imagen' },
+      }))
+    } finally {
+      setLecturas((prev) => ({ ...prev, [poleaId]: { ...prev[poleaId], analizando: false } }))
+    }
+  }
+
+  async function handleGenerarObservacion() {
+    setGenerandoObservacion(true)
+    setObservacionError(null)
+    try {
+      const lecturasCompletas = faja.poleas
+        .map((polea) => ({ polea, lectura: lecturas[polea.id] }))
+        .filter(({ lectura }) => lectura.tempIzquierda && lectura.tempDerecha)
+        .map(({ polea, lectura }) => ({
+          numeroPolea: polea.numero,
+          tempIzquierda: Number(lectura.tempIzquierda),
+          tempDerecha: Number(lectura.tempDerecha),
+          condicion: lectura.condicion,
+        }))
+      const texto = await generarObservacionGeneral({ lecturas: lecturasCompletas })
+      setObservacionGeneral(texto)
+    } catch (err) {
+      setObservacionError(err instanceof Error ? err.message : 'Error al generar la observación')
+    } finally {
+      setGenerandoObservacion(false)
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     setError(null)
@@ -78,7 +137,6 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
         supervisor,
         numeroAvisoSAP,
         observacionGeneral,
-        createdByUserId: (session?.user as { id?: string } | undefined)?.id ?? '',
         lecturas: faja.poleas.map((polea) => {
           const l = lecturas[polea.id]
           return {
@@ -129,11 +187,42 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-gray-600">Supervisor</span>
-          <input className="w-full rounded border px-3 py-2" value={supervisor} onChange={(e) => setSupervisor(e.target.value)} required />
+          {supervisores.length > 0 ? (
+            <select
+              className="w-full rounded border px-3 py-2"
+              value={supervisor}
+              onChange={(e) => setSupervisor(e.target.value)}
+              required
+            >
+              {supervisores.map((s) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          ) : (
+            <input className="w-full rounded border px-3 py-2" value={supervisor} onChange={(e) => setSupervisor(e.target.value)} required />
+          )}
         </label>
         <label className="sm:col-span-2 text-sm">
           <span className="mb-1 block text-gray-600">Observación general</span>
-          <input className="w-full rounded border px-3 py-2" value={observacionGeneral} onChange={(e) => setObservacionGeneral(e.target.value)} />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              className="w-full rounded border px-3 py-2"
+              value={observacionGeneral}
+              onChange={(e) => setObservacionGeneral(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={handleGenerarObservacion}
+              disabled={generandoObservacion || completadas === 0}
+              className="whitespace-nowrap rounded border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {generandoObservacion ? 'Generando...' : '✨ Generar con IA'}
+            </button>
+          </div>
+          {completadas === 0 && (
+            <span className="mt-1 block text-xs text-gray-400">Completa al menos una polea para poder generarla.</span>
+          )}
+          {observacionError && <p className="mt-1 text-xs text-red-700">{observacionError}</p>}
         </label>
       </div>
 
@@ -197,6 +286,19 @@ export function ReporteForm({ faja }: { faja: FajaConDetalle }) {
                 label="Foto derecha"
               />
             </div>
+            {lectura.fotoIzquierdaUrl && lectura.fotoDerechaUrl && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => handleAnalizar(polea.id)}
+                  disabled={lectura.analizando}
+                  className="rounded border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {lectura.analizando ? 'Analizando termograma...' : '✨ Leer temperatura y diagnóstico con IA'}
+                </button>
+                {lectura.analisisError && <p className="mt-1 text-xs text-red-700">{lectura.analisisError}</p>}
+              </div>
+            )}
             <label className="block text-sm">
               <span className="mb-1 block text-gray-600">Diagnóstico</span>
               <textarea

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { prisma } from '../../src/lib/prisma'
 import {
   createFaja,
@@ -8,6 +8,8 @@ import {
   deleteFaja,
   countReportesByFaja,
 } from '../../src/server/actions/fajas'
+import { DEFAULT_CRITERIOS } from '../../src/lib/criterios'
+import { setActor, ADMIN_ACTOR } from '../helpers/actor'
 
 async function setupFaja(numeroPoleas = 3) {
   const cliente = await prisma.cliente.create({ data: { nombre: 'Test Cliente Edit' } })
@@ -19,12 +21,13 @@ async function setupFaja(numeroPoleas = 3) {
     nombre: 'CV001',
     lugar: 'MOQUEGUA',
     numeroPoleas,
-    createdByUserId: 'test-user',
+    criterios: DEFAULT_CRITERIOS,
   })
   return { cliente, contratista, faja }
 }
 
 describe('faja editing actions', () => {
+  beforeEach(() => setActor(ADMIN_ACTOR))
   afterEach(async () => {
     await prisma.faja.deleteMany({ where: { tag: { startsWith: '8888' } } })
     await prisma.cliente.deleteMany({ where: { nombre: 'Test Cliente Edit' } })
@@ -40,7 +43,7 @@ describe('faja editing actions', () => {
 
   it('updates a criterio range', async () => {
     const { faja } = await setupFaja()
-    const criterio = await prisma.criterioAceptacion.findFirstOrThrow({ where: { fajaId: faja.id, nivel: 'NORMAL' } })
+    const criterio = await prisma.criterioAceptacion.findFirstOrThrow({ where: { fajaId: faja.id, nivel: 'BUENO' } })
     const updated = await updateCriterio(criterio.id, { tempMin: 10, tempMax: 20, deltaMin: 0, deltaMax: 3 })
     expect(updated.tempMin).toBe(10)
     expect(updated.tempMax).toBe(20)
@@ -64,7 +67,7 @@ describe('faja editing actions', () => {
         especialista: 'X',
         supervisor: 'Y',
         numeroAvisoSAP: '123',
-        condicionGeneral: 'NORMAL',
+        condicionGeneral: 'BUENO',
         createdByUserId: 'test-user',
       },
     })
@@ -76,7 +79,7 @@ describe('faja editing actions', () => {
         tempDerecha: 20,
         fotoIzquierdaUrl: 'https://example.com/a.jpg',
         fotoDerechaUrl: 'https://example.com/b.jpg',
-        condicion: 'NORMAL',
+        condicion: 'BUENO',
         diagnosticoTexto: 'texto',
       },
     })

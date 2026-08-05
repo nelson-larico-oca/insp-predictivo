@@ -1,19 +1,42 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createUser } from '@/server/actions/users'
-import type { Role } from '@prisma/client'
+import type { Cliente, Contratista, Role } from '@prisma/client'
 
-export function CreateUserForm() {
+const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: 'Administrador',
+  SUPERVISOR: 'Supervisor',
+  INSPECTOR: 'Inspector',
+  CLIENTE: 'Cliente',
+}
+
+interface CreateUserFormProps {
+  actorRole: Role
+  contratistas: Contratista[]
+  clientes: Cliente[]
+}
+
+export function CreateUserForm({ actorRole, contratistas, clientes }: CreateUserFormProps) {
   const router = useRouter()
+  const assignableRoles: Role[] = useMemo(
+    () => (actorRole === 'ADMIN' ? ['ADMIN', 'SUPERVISOR', 'INSPECTOR', 'CLIENTE'] : ['SUPERVISOR', 'INSPECTOR']),
+    [actorRole]
+  )
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<Role>('USER')
+  const [role, setRole] = useState<Role>(assignableRoles[0])
+  const [contratistaId, setContratistaId] = useState(contratistas[0]?.id ?? '')
+  const [clienteId, setClienteId] = useState(clientes[0]?.id ?? '')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const needsContratista = actorRole === 'ADMIN' && (role === 'SUPERVISOR' || role === 'INSPECTOR')
+  const needsCliente = role === 'CLIENTE'
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -21,11 +44,18 @@ export function CreateUserForm() {
     setSuccess(false)
     setSubmitting(true)
     try {
-      await createUser({ name, email, password, role })
+      await createUser({
+        name,
+        email,
+        password,
+        role,
+        contratistaId: needsContratista ? contratistaId : undefined,
+        clienteId: needsCliente ? clienteId : undefined,
+      })
       setName('')
       setEmail('')
       setPassword('')
-      setRole('USER')
+      setRole(assignableRoles[0])
       setSuccess(true)
       router.refresh()
     } catch (err) {
@@ -76,10 +106,41 @@ export function CreateUserForm() {
             value={role}
             onChange={(event) => setRole(event.target.value as Role)}
           >
-            <option value="USER">Usuario</option>
-            <option value="ADMIN">Administrador</option>
+            {assignableRoles.map((r) => (
+              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+            ))}
           </select>
         </label>
+        {needsContratista && (
+          <label className="block text-sm">
+            <span className="mb-1 block text-gray-600">Contratista</span>
+            <select
+              className="w-full rounded border px-3 py-2"
+              value={contratistaId}
+              onChange={(event) => setContratistaId(event.target.value)}
+              required
+            >
+              {contratistas.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {needsCliente && (
+          <label className="block text-sm">
+            <span className="mb-1 block text-gray-600">Cliente</span>
+            <select
+              className="w-full rounded border px-3 py-2"
+              value={clienteId}
+              onChange={(event) => setClienteId(event.target.value)}
+              required
+            >
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       {error && <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       {success && (

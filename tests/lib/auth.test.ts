@@ -7,7 +7,7 @@ describe('verifyCredentials', () => {
   beforeAll(async () => {
     const passwordHash = await bcrypt.hash('secret123', 10)
     await prisma.user.create({
-      data: { name: 'Test User', email: 'auth-test@example.com', passwordHash },
+      data: { name: 'Test User', email: 'auth-test@example.com', passwordHash, role: 'SUPERVISOR' },
     })
   })
 

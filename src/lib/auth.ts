@@ -1,5 +1,4 @@
 import type { NextAuthOptions } from 'next-auth'
-import { getServerSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
@@ -10,6 +9,8 @@ export interface AuthenticatedUser {
   name: string
   email: string
   role: Role
+  contratistaId: string | null
+  clienteId: string | null
 }
 
 export async function verifyCredentials(
@@ -20,7 +21,14 @@ export async function verifyCredentials(
   if (!user) return null
   const valid = await bcrypt.compare(password, user.passwordHash)
   if (!valid) return null
-  return { id: user.id, name: user.name, email: user.email, role: user.role }
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    contratistaId: user.contratistaId,
+    clienteId: user.clienteId,
+  }
 }
 
 export const authOptions: NextAuthOptions = {
@@ -42,8 +50,11 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as AuthenticatedUser).id
-        token.role = (user as AuthenticatedUser).role
+        const authUser = user as AuthenticatedUser
+        token.id = authUser.id
+        token.role = authUser.role
+        token.contratistaId = authUser.contratistaId
+        token.clienteId = authUser.clienteId
       }
       return token
     },
@@ -51,16 +62,10 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id
         session.user.role = token.role
+        session.user.contratistaId = token.contratistaId
+        session.user.clienteId = token.clienteId
       }
       return session
     },
   },
-}
-
-export async function requireAdmin() {
-  const session = await getServerSession(authOptions)
-  if (session?.user?.role !== 'ADMIN') {
-    throw new Error('No autorizado: se requiere rol de administrador')
-  }
-  return session.user
 }

@@ -1,18 +1,31 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { getFajaById } from '@/server/actions/fajas'
+import { requireUser } from '@/lib/session'
+import { canCreateReporte } from '@/lib/permissions'
+import { listSupervisoresDeContratista } from '@/server/actions/users'
 import { ReporteForm } from './ReporteForm'
 
 export default async function NewReportePage({ params }: { params: { id: string } }) {
+  const user = await requireUser()
   const faja = await getFajaById(params.id)
   if (!faja) notFound()
+  if (!canCreateReporte(user, faja)) redirect(`/fajas/${faja.id}`)
+
+  const [session, supervisores] = await Promise.all([
+    getServerSession(authOptions),
+    listSupervisoresDeContratista(faja.contratistaId),
+  ])
+
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
       <Link href={`/fajas/${faja.id}`} className="text-sm text-gray-500 hover:text-blue-700">
         ← Volver a {faja.tag}
       </Link>
       <h1 className="text-xl font-semibold">Nuevo reporte — {faja.tag}</h1>
-      <ReporteForm faja={faja} />
+      <ReporteForm faja={faja} currentUserName={session?.user?.name ?? ''} supervisores={supervisores} />
     </main>
   )
 }

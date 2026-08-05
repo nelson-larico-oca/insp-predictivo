@@ -1,7 +1,7 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireUser } from '@/lib/session'
+import { canManageFaja } from '@/lib/permissions'
 import { getReporteById } from '@/server/actions/reportes'
 import { ReporteHeader } from '@/components/ReporteHeader'
 import { CriterioTable } from '@/components/CriterioTable'
@@ -9,11 +9,11 @@ import { PoleaDiagnosticoBlock } from '@/components/PoleaDiagnosticoBlock'
 import { DeleteReporteButton } from './DeleteReporteButton'
 
 export default async function ReporteDetailPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) redirect('/login')
+  const user = await requireUser()
 
   const reporte = await getReporteById(params.id)
   if (!reporte) notFound()
+  const canDelete = canManageFaja(user, reporte.faja)
 
   return (
     <main className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
@@ -26,10 +26,6 @@ export default async function ReporteDetailPage({ params }: { params: { id: stri
         <img src={reporte.faja.esquemaUrl} alt="Esquema de poleas" className="max-w-full rounded border" />
       )}
       <CriterioTable criterios={reporte.faja.criterios} />
-      {reporte.faja.criteriosImagenUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={reporte.faja.criteriosImagenUrl} alt="Criterios de aceptación (documento original)" className="max-w-full rounded border" />
-      )}
       {reporte.lecturas.map((lectura) => (
         <PoleaDiagnosticoBlock key={lectura.id} lectura={lectura} />
       ))}
@@ -40,7 +36,7 @@ export default async function ReporteDetailPage({ params }: { params: { id: stri
         >
           Descargar PDF
         </a>
-        <DeleteReporteButton reporteId={reporte.id} fajaId={reporte.fajaId} />
+        {canDelete && <DeleteReporteButton reporteId={reporte.id} fajaId={reporte.fajaId} />}
       </div>
     </main>
   )

@@ -5,12 +5,6 @@ import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useState } from 'react'
 
-const LINKS = [
-  { href: '/fajas', label: 'Fajas' },
-  { href: '/clientes', label: 'Clientes' },
-  { href: '/contratistas', label: 'Contratistas' },
-]
-
 export function NavBar() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
@@ -18,8 +12,19 @@ export function NavBar() {
 
   if (status !== 'authenticated') return null
 
-  const isAdmin = session.user?.role === 'ADMIN'
-  const links = isAdmin ? [...LINKS, { href: '/admin', label: 'Administración' }] : LINKS
+  const role = session.user?.role
+  const isAdmin = role === 'ADMIN'
+  const isSupervisor = role === 'SUPERVISOR'
+
+  const links = [
+    { href: '/fajas', label: 'Fajas' },
+    ...(isAdmin ? [{ href: '/clientes', label: 'Clientes' }, { href: '/contratistas', label: 'Contratistas' }] : []),
+    ...(isAdmin
+      ? [{ href: '/admin', label: 'Administración' }]
+      : isSupervisor
+        ? [{ href: '/admin', label: 'Mi equipo' }]
+        : []),
+  ]
 
   return (
     <nav className="border-b bg-white px-4 py-3 sm:px-6">

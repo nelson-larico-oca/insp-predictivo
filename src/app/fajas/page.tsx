@@ -1,22 +1,29 @@
 import Link from 'next/link'
 import { listFajas } from '@/server/actions/fajas'
+import { requireUser } from '@/lib/session'
+import { canCreateFaja } from '@/lib/permissions'
 
 export default async function FajasPage() {
-  const fajas = await listFajas()
+  const [user, fajas] = await Promise.all([requireUser(), listFajas()])
+  const canCreate = canCreateFaja(user)
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold">Fajas</h1>
-        <Link href="/fajas/new" className="rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700">
-          + Nueva faja
-        </Link>
+        {canCreate && (
+          <Link href="/fajas/new" className="rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700">
+            + Nueva faja
+          </Link>
+        )}
       </div>
       {fajas.length === 0 ? (
         <div className="rounded border border-dashed p-8 text-center">
           <p className="text-sm text-gray-500">Todavía no hay fajas registradas.</p>
-          <Link href="/fajas/new" className="mt-2 inline-block text-sm font-medium text-blue-700 hover:underline">
-            Crear la primera faja →
-          </Link>
+          {canCreate && (
+            <Link href="/fajas/new" className="mt-2 inline-block text-sm font-medium text-blue-700 hover:underline">
+              Crear la primera faja →
+            </Link>
+          )}
         </div>
       ) : (
         <ul className="space-y-2">

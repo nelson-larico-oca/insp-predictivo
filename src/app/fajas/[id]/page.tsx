@@ -2,19 +2,25 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getFajaById, countReportesByFaja } from '@/server/actions/fajas'
 import { getHistoricoByFaja } from '@/lib/historico'
+import { requireUser } from '@/lib/session'
+import { canCreateReporte, canManageFaja } from '@/lib/permissions'
 import { PoleaTipoEditor } from './PoleaTipoEditor'
-import { CriterioEditor } from './CriterioEditor'
+import { CriteriosSection } from './CriteriosSection'
 import { DeleteFajaButton } from './DeleteFajaButton'
 import { FajaImagenesEditor } from './FajaImagenesEditor'
+import { CriterioTable } from '@/components/CriterioTable'
 import { HistoricoTable } from '@/components/HistoricoTable'
 import { TrendChart } from '@/components/TrendChart'
 import { CondicionBadge } from '@/components/CondicionBadge'
 
 export default async function FajaDetailPage({ params }: { params: { id: string } }) {
+  const user = await requireUser()
   const faja = await getFajaById(params.id)
   if (!faja) notFound()
   const reportesCount = await countReportesByFaja(faja.id)
   const historico = await getHistoricoByFaja(faja.id)
+  const canManage = canManageFaja(user, faja)
+  const canReport = canCreateReporte(user, faja)
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
@@ -27,53 +33,48 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
           <h1 className="text-xl font-semibold">{faja.tag}</h1>
           <p className="text-sm text-gray-500">{faja.cliente.nombre} · {faja.lugar} · {faja.numeroPoleas} polea(s)</p>
         </div>
-        <Link
-          href={`/fajas/${faja.id}/reportes/new`}
-          className="rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
-        >
-          + Crear reporte
-        </Link>
+        {canReport && (
+          <Link
+            href={`/fajas/${faja.id}/reportes/new`}
+            className="rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
+          >
+            + Crear reporte
+          </Link>
+        )}
       </div>
 
       <section>
         <h2 className="mb-2 font-medium">Imágenes de referencia</h2>
-        <FajaImagenesEditor
-          fajaId={faja.id}
-          esquemaUrl={faja.esquemaUrl}
-          criteriosImagenUrl={faja.criteriosImagenUrl}
-        />
+        {canManage ? (
+          <FajaImagenesEditor fajaId={faja.id} esquemaUrl={faja.esquemaUrl} />
+        ) : (
+          faja.esquemaUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={faja.esquemaUrl} alt="Esquema de poleas" className="max-w-full rounded border" />
+          )
+        )}
       </section>
 
       <section>
         <h2 className="mb-2 font-medium">Poleas</h2>
         <div className="space-y-1 rounded border bg-white p-3">
-          {faja.poleas.map((polea) => (
-            <PoleaTipoEditor key={polea.id} polea={polea} />
-          ))}
+          {canManage
+            ? faja.poleas.map((polea) => <PoleaTipoEditor key={polea.id} polea={polea} />)
+            : faja.poleas.map((polea) => (
+                <p key={polea.id} className="text-sm text-gray-600">
+                  Polea {polea.numero}{polea.tipo ? ` — ${polea.tipo}` : ''}
+                </p>
+              ))}
         </div>
       </section>
 
       <section>
         <h2 className="mb-2 font-medium">Criterios de aceptación</h2>
-        <div className="overflow-x-auto rounded border bg-white">
-          <table className="w-full min-w-[520px] text-sm">
-            <thead>
-              <tr className="text-left">
-                <th className="px-2 py-1">Nivel</th>
-                <th className="px-2 py-1">Temp min</th>
-                <th className="px-2 py-1">Temp max</th>
-                <th className="px-2 py-1">Delta min</th>
-                <th className="px-2 py-1">Delta max</th>
-                <th className="px-2 py-1"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {faja.criterios.map((criterio) => (
-                <CriterioEditor key={criterio.id} criterio={criterio} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {canManage ? (
+          <CriteriosSection criterios={faja.criterios} locked={faja.reportes.length > 0} />
+        ) : (
+          <CriterioTable criterios={faja.criterios} />
+        )}
       </section>
 
       <section>
@@ -81,9 +82,11 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
         {faja.reportes.length === 0 ? (
           <p className="rounded border border-dashed p-4 text-center text-sm text-gray-500">
             Todavía no hay reportes para esta faja.{' '}
-            <Link href={`/fajas/${faja.id}/reportes/new`} className="font-medium text-blue-700 hover:underline">
-              Crear el primero →
-            </Link>
+            {canReport && (
+              <Link href={`/fajas/${faja.id}/reportes/new`} className="font-medium text-blue-700 hover:underline">
+                Crear el primero →
+              </Link>
+            )}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -120,7 +123,7 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
         </>
       )}
 
-      <DeleteFajaButton fajaId={faja.id} reportesCount={reportesCount} />
+      {canManage && <DeleteFajaButton fajaId={faja.id} reportesCount={reportesCount} />}
     </main>
   )
 }

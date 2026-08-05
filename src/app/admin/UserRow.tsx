@@ -3,25 +3,60 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteUser, resetUserPassword, updateUser, type SafeUser } from '@/server/actions/users'
-import type { Role } from '@prisma/client'
+import type { Cliente, Contratista, Role } from '@prisma/client'
 
-export function UserRow({ user, isSelf }: { user: SafeUser; isSelf: boolean }) {
+const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: 'Administrador',
+  SUPERVISOR: 'Supervisor',
+  INSPECTOR: 'Inspector',
+  CLIENTE: 'Cliente',
+}
+
+const ROLE_BADGE: Record<Role, string> = {
+  ADMIN: 'bg-blue-100 text-blue-700',
+  SUPERVISOR: 'bg-purple-100 text-purple-700',
+  INSPECTOR: 'bg-amber-100 text-amber-700',
+  CLIENTE: 'bg-gray-100 text-gray-600',
+}
+
+interface UserRowProps {
+  user: SafeUser
+  isSelf: boolean
+  actorRole: Role
+  contratistas: Contratista[]
+  clientes: Cliente[]
+}
+
+export function UserRow({ user, isSelf, actorRole, contratistas, clientes }: UserRowProps) {
   const router = useRouter()
+  const assignableRoles: Role[] = actorRole === 'ADMIN' ? ['ADMIN', 'SUPERVISOR', 'INSPECTOR', 'CLIENTE'] : ['SUPERVISOR', 'INSPECTOR']
+
   const [editing, setEditing] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [name, setName] = useState(user.name)
   const [email, setEmail] = useState(user.email)
   const [role, setRole] = useState<Role>(user.role)
+  const [contratistaId, setContratistaId] = useState(user.contratistaId ?? contratistas[0]?.id ?? '')
+  const [clienteId, setClienteId] = useState(user.clienteId ?? clientes[0]?.id ?? '')
   const [newPassword, setNewPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const needsContratista = actorRole === 'ADMIN' && (role === 'SUPERVISOR' || role === 'INSPECTOR')
+  const needsCliente = role === 'CLIENTE'
 
   async function handleSaveEdit() {
     setError(null)
     setBusy(true)
     try {
-      await updateUser(user.id, { name, email, role })
+      await updateUser(user.id, {
+        name,
+        email,
+        role,
+        contratistaId: needsContratista ? contratistaId : undefined,
+        clienteId: needsCliente ? clienteId : undefined,
+      })
       setEditing(false)
       router.refresh()
     } catch (err) {
@@ -62,13 +97,28 @@ export function UserRow({ user, isSelf }: { user: SafeUser; isSelf: boolean }) {
     return (
       <tr className="border-b align-top">
         <td className="px-4 py-3" colSpan={5}>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-center">
             <input className="rounded border px-2 py-1" value={name} onChange={(e) => setName(e.target.value)} />
             <input className="rounded border px-2 py-1" value={email} onChange={(e) => setEmail(e.target.value)} />
             <select className="rounded border px-2 py-1" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              <option value="USER">Usuario</option>
-              <option value="ADMIN">Administrador</option>
+              {assignableRoles.map((r) => (
+                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+              ))}
             </select>
+            {needsContratista && (
+              <select className="rounded border px-2 py-1" value={contratistaId} onChange={(e) => setContratistaId(e.target.value)}>
+                {contratistas.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </select>
+            )}
+            {needsCliente && (
+              <select className="rounded border px-2 py-1" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </select>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleSaveEdit}
@@ -88,19 +138,18 @@ export function UserRow({ user, isSelf }: { user: SafeUser; isSelf: boolean }) {
     )
   }
 
+  const asignacion = user.contratista?.nombre ?? user.cliente?.nombre ?? '—'
+
   return (
     <tr className="border-b">
       <td className="px-4 py-3">{user.name}</td>
       <td className="px-4 py-3">{user.email}</td>
       <td className="px-4 py-3">
-        <span
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-            user.role === 'ADMIN' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-          }`}
-        >
-          {user.role === 'ADMIN' ? 'Administrador' : 'Usuario'}
+        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_BADGE[user.role]}`}>
+          {ROLE_LABELS[user.role]}
         </span>
       </td>
+      <td className="px-4 py-3 text-gray-500">{asignacion}</td>
       <td className="px-4 py-3 text-gray-500">{new Date(user.createdAt).toLocaleDateString('es-PE')}</td>
       <td className="px-4 py-3">
         <div className="flex flex-wrap justify-end gap-2">

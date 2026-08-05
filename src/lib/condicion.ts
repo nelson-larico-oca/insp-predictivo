@@ -1,17 +1,17 @@
 import type { Condicion } from '@prisma/client'
 
 const SEVERITY: Record<Condicion, number> = {
-  NORMAL: 0,
-  TOLERABLE: 1,
-  PRECAUCION: 2,
-  CRITICO: 3,
+  BUENO: 0,
+  ACEPTABLE: 1,
+  INSATISFACTORIO: 2,
+  INACEPTABLE: 3,
 }
 
 export const CONDICION_COLORS: Record<Condicion, string> = {
-  NORMAL: '#22c55e',
-  TOLERABLE: '#eab308',
-  PRECAUCION: '#f97316',
-  CRITICO: '#ef4444',
+  BUENO: '#22c55e',
+  ACEPTABLE: '#eab308',
+  INSATISFACTORIO: '#f97316',
+  INACEPTABLE: '#ef4444',
 }
 
 export function computeDelta(tempIzquierda: number, tempDerecha: number): number {

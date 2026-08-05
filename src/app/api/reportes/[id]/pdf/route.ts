@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import type { Browser } from 'puppeteer-core'
-import { authOptions } from '@/lib/auth'
+import { getReporteById } from '@/server/actions/reportes'
 import { generatePrintToken } from '@/lib/printToken'
 
 export const runtime = 'nodejs'
@@ -25,9 +24,14 @@ async function launchBrowser(): Promise<Browser> {
 }
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  let reporte
+  try {
+    reporte = await getReporteById(params.id)
+  } catch {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+  if (!reporte) {
+    return NextResponse.json({ error: 'Reporte no encontrado' }, { status: 404 })
   }
 
   const baseUrl = process.env.APP_BASE_URL ?? 'http://localhost:3000'

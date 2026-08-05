@@ -9,38 +9,46 @@ datasource db {
 }
 
 enum Condicion {
-  NORMAL
-  TOLERABLE
-  PRECAUCION
-  CRITICO
+  BUENO
+  ACEPTABLE
+  INSATISFACTORIO
+  INACEPTABLE
 }
 
 enum Role {
   ADMIN
-  USER
+  SUPERVISOR
+  INSPECTOR
+  CLIENTE
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
+  id            String       @id @default(cuid())
+  name          String
+  email         String       @unique
+  passwordHash  String
+  role          Role
+  contratistaId String?
+  contratista   Contratista? @relation(fields: [contratistaId], references: [id])
+  clienteId     String?
+  cliente       Cliente?     @relation(fields: [clienteId], references: [id])
+  createdAt     DateTime     @default(now())
 }
 
 model Cliente {
-  id      String @id @default(cuid())
+  id      String  @id @default(cuid())
   nombre  String
   logoUrl String?
   fajas   Faja[]
+  usuarios User[]
 }
 
 model Contratista {
-  id      String @id @default(cuid())
+  id      String  @id @default(cuid())
   nombre  String
   logoUrl String?
   fajas   Faja[]
+  usuarios User[]
 }
 
 model Faja {
@@ -56,7 +64,6 @@ model Faja {
   descripcion     String?
   numeroPoleas    Int
   esquemaUrl      String?
-  criteriosImagenUrl String?
   createdByUserId String
   createdAt       DateTime             @default(now())
   poleas          Polea[]

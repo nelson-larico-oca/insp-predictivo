@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 interface ImageUploaderProps {
   folder: string
@@ -15,10 +15,10 @@ const MAX_BYTES = 10 * 1024 * 1024
 export function ImageUploader({ folder, value, onUploaded, label }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file) return
+  async function uploadFile(file: File) {
     setError(null)
 
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -61,6 +61,19 @@ export function ImageUploader({ folder, value, onUploaded, label }: ImageUploade
     }
   }
 
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (file) uploadFile(file)
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setDragging(false)
+    if (uploading) return
+    const file = event.dataTransfer.files?.[0]
+    if (file) uploadFile(file)
+  }
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium">{label}</label>
@@ -68,8 +81,30 @@ export function ImageUploader({ folder, value, onUploaded, label }: ImageUploade
         // eslint-disable-next-line @next/next/no-img-element
         <img src={value} alt={label} className="h-24 w-24 rounded border object-cover" />
       )}
-      <input type="file" accept="image/jpeg,image/png" onChange={handleFileChange} disabled={uploading} />
-      {uploading && <p className="text-sm text-gray-500">Subiendo...</p>}
+      <div
+        onClick={() => !uploading && inputRef.current?.click()}
+        onDragOver={(event) => {
+          event.preventDefault()
+          setDragging(true)
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        className={`flex cursor-pointer flex-col items-center justify-center rounded border-2 border-dashed px-3 py-4 text-center text-sm transition ${
+          dragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+        } ${uploading ? 'pointer-events-none opacity-60' : ''}`}
+      >
+        <span className="text-gray-500">
+          {uploading ? 'Subiendo...' : 'Arrastrá una imagen aquí o hacé clic para seleccionar'}
+        </span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png"
+          onChange={handleFileChange}
+          disabled={uploading}
+          className="hidden"
+        />
+      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   )

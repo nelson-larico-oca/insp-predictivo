@@ -1,8 +1,10 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { prisma } from '../../src/lib/prisma'
 import { createCliente, listClientes } from '../../src/server/actions/clientes'
+import { setActor, ADMIN_ACTOR } from '../helpers/actor'
 
 describe('createCliente', () => {
+  beforeEach(() => setActor(ADMIN_ACTOR))
   afterEach(async () => {
     await prisma.cliente.deleteMany({ where: { nombre: { startsWith: 'Test Cliente' } } })
   })

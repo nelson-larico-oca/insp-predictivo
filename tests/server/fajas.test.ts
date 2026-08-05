@@ -1,6 +1,8 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { prisma } from '../../src/lib/prisma'
-import { createFaja, getFajaById, updateFajaImagenes } from '../../src/server/actions/fajas'
+import { createFaja, getFajaById } from '../../src/server/actions/fajas'
+import { DEFAULT_CRITERIOS } from '../../src/lib/criterios'
+import { setActor, ADMIN_ACTOR } from '../helpers/actor'
 
 async function makeClienteYContratista() {
   const cliente = await prisma.cliente.create({ data: { nombre: 'Test Cliente Faja' } })
@@ -9,6 +11,7 @@ async function makeClienteYContratista() {
 }
 
 describe('createFaja', () => {
+  beforeEach(() => setActor(ADMIN_ACTOR))
   afterEach(async () => {
     await prisma.faja.deleteMany({ where: { tag: { startsWith: '9999' } } })
     await prisma.cliente.deleteMany({ where: { nombre: 'Test Cliente Faja' } })
@@ -24,7 +27,7 @@ describe('createFaja', () => {
       nombre: 'CV001',
       lugar: 'MOQUEGUA',
       numeroPoleas: 5,
-      createdByUserId: 'test-user',
+      criterios: DEFAULT_CRITERIOS,
     })
     expect(faja.tag).toBe('9999CV001')
 
@@ -33,12 +36,13 @@ describe('createFaja', () => {
     expect(detalle?.poleas.map((p) => p.numero)).toEqual([1, 2, 3, 4, 5])
     expect(detalle?.criterios).toHaveLength(4)
     expect(detalle?.criterios.map((c) => c.nivel).sort()).toEqual(
-      ['CRITICO', 'NORMAL', 'PRECAUCION', 'TOLERABLE'].sort()
+      ['ACEPTABLE', 'BUENO', 'INACEPTABLE', 'INSATISFACTORIO'].sort()
     )
   })
 
-  it('stores the criteriosImagenUrl when provided and allows updating it later', async () => {
+  it('stores the manually entered temp/delta ranges per nivel', async () => {
     const { cliente, contratista } = await makeClienteYContratista()
+    const criterios = DEFAULT_CRITERIOS.map((c) => (c.nivel === 'INACEPTABLE' ? { ...c, tempMin: 95 } : c))
     const faja = await createFaja({
       clienteId: cliente.id,
       contratistaId: contratista.id,
@@ -46,15 +50,27 @@ describe('createFaja', () => {
       nombre: 'CV003',
       lugar: 'MOQUEGUA',
       numeroPoleas: 1,
-      criteriosImagenUrl: 'https://res.cloudinary.com/demo/criterios-v1.jpg',
-      createdByUserId: 'test-user',
+      criterios,
     })
-    expect(faja.criteriosImagenUrl).toBe('https://res.cloudinary.com/demo/criterios-v1.jpg')
 
-    const updated = await updateFajaImagenes(faja.id, {
-      criteriosImagenUrl: 'https://res.cloudinary.com/demo/criterios-v2.jpg',
-    })
-    expect(updated.criteriosImagenUrl).toBe('https://res.cloudinary.com/demo/criterios-v2.jpg')
+    const detalle = await getFajaById(faja.id)
+    const inaceptable = detalle?.criterios.find((c) => c.nivel === 'INACEPTABLE')
+    expect(inaceptable?.tempMin).toBe(95)
+  })
+
+  it('rejects criterios missing one of the 4 required niveles', async () => {
+    const { cliente, contratista } = await makeClienteYContratista()
+    await expect(
+      createFaja({
+        clienteId: cliente.id,
+        contratistaId: contratista.id,
+        area: '9999',
+        nombre: 'CV004',
+        lugar: 'MOQUEGUA',
+        numeroPoleas: 1,
+        criterios: DEFAULT_CRITERIOS.filter((c) => c.nivel !== 'INACEPTABLE'),
+      })
+    ).rejects.toThrow('Debes definir los 4 niveles de criterios de aceptación')
   })
 
   it('rejects a duplicate tag with a friendly error', async () => {
@@ -66,7 +82,7 @@ describe('createFaja', () => {
       nombre: 'CV002',
       lugar: 'MOQUEGUA',
       numeroPoleas: 2,
-      createdByUserId: 'test-user',
+      criterios: DEFAULT_CRITERIOS,
     }
     await createFaja(input)
     await expect(createFaja(input)).rejects.toThrow('Ya existe una faja con el tag 9999CV002')

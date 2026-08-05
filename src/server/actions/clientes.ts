@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { safeRevalidatePath } from '@/lib/safeRevalidate'
+import { requireAdmin } from '@/lib/session'
 import type { Cliente } from '@prisma/client'
 
 export interface CreateClienteInput {
@@ -10,6 +11,7 @@ export interface CreateClienteInput {
 }
 
 export async function createCliente(input: CreateClienteInput): Promise<Cliente> {
+  await requireAdmin()
   if (!input.nombre.trim()) {
     throw new Error('El nombre del cliente es obligatorio')
   }

@@ -3,6 +3,9 @@
 import { prisma } from '@/lib/prisma'
 import { worstCondicion } from '@/lib/condicion'
 import { safeRevalidatePath } from '@/lib/safeRevalidate'
+import { requireUser } from '@/lib/session'
+import { canCreateReporte, canDeleteReporte, canReadFaja } from '@/lib/permissions'
+import { verifyPrintToken } from '@/lib/printToken'
 import type { Condicion, Reporte } from '@prisma/client'
 
 export interface LecturaPoleaInput {
@@ -22,12 +25,15 @@ export interface CreateReporteInput {
   supervisor: string
   numeroAvisoSAP: string
   observacionGeneral?: string
-  createdByUserId: string
   lecturas: LecturaPoleaInput[]
 }
 
 export async function createReporte(input: CreateReporteInput): Promise<Reporte> {
+  const user = await requireUser()
   const faja = await prisma.faja.findUniqueOrThrow({ where: { id: input.fajaId } })
+  if (!canCreateReporte(user, faja)) {
+    throw new Error('No autorizado para crear reportes en esta faja')
+  }
 
   if (input.lecturas.length !== faja.numeroPoleas) {
     throw new Error(`Debes registrar una lectura para cada una de las ${faja.numeroPoleas} poleas de la faja`)
@@ -52,7 +58,7 @@ export async function createReporte(input: CreateReporteInput): Promise<Reporte>
       numeroAvisoSAP: input.numeroAvisoSAP.trim(),
       condicionGeneral,
       observacionGeneral: input.observacionGeneral || 'Equipo sin indicaciones',
-      createdByUserId: input.createdByUserId,
+      createdByUserId: user.id,
       lecturas: { create: input.lecturas },
     },
   })
@@ -60,19 +66,32 @@ export async function createReporte(input: CreateReporteInput): Promise<Reporte>
   return reporte
 }
 
+const REPORTE_INCLUDE = {
+  faja: { include: { cliente: true, contratista: true, criterios: true } },
+  lecturas: { include: { polea: true }, orderBy: { polea: { numero: 'asc' as const } } },
+}
+
 export async function getReporteById(id: string) {
-  return prisma.reporte.findUnique({
-    where: { id },
-    include: {
-      faja: { include: { cliente: true, contratista: true, criterios: true } },
-      lecturas: { include: { polea: true }, orderBy: { polea: { numero: 'asc' } } },
-    },
-  })
+  const user = await requireUser()
+  const reporte = await prisma.reporte.findUnique({ where: { id }, include: REPORTE_INCLUDE })
+  if (!reporte || !canReadFaja(user, reporte.faja)) return null
+  return reporte
+}
+
+/** Used only by the unauthenticated Puppeteer print view, gated by the HMAC print token instead of a session. */
+export async function getReporteForPrint(id: string, token: string) {
+  if (!verifyPrintToken(id, token)) return null
+  return prisma.reporte.findUnique({ where: { id }, include: REPORTE_INCLUDE })
 }
 
 export type ReporteConDetalle = NonNullable<Awaited<ReturnType<typeof getReporteById>>>
 
 export async function deleteReporte(id: string): Promise<void> {
-  const reporte = await prisma.reporte.delete({ where: { id } })
+  const user = await requireUser()
+  const reporte = await prisma.reporte.findUniqueOrThrow({ where: { id }, include: { faja: true } })
+  if (!canDeleteReporte(user, reporte.faja)) {
+    throw new Error('No autorizado para eliminar este reporte')
+  }
+  await prisma.reporte.delete({ where: { id } })
   safeRevalidatePath(`/fajas/${reporte.fajaId}`)
 }

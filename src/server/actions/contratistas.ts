@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { safeRevalidatePath } from '@/lib/safeRevalidate'
+import { requireAdmin } from '@/lib/session'
 import type { Contratista } from '@prisma/client'
 
 export interface CreateContratistaInput {
@@ -10,6 +11,7 @@ export interface CreateContratistaInput {
 }
 
 export async function createContratista(input: CreateContratistaInput): Promise<Contratista> {
+  await requireAdmin()
   if (!input.nombre.trim()) {
     throw new Error('El nombre del contratista es obligatorio')
   }

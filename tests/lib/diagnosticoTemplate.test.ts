@@ -7,11 +7,11 @@ describe('buildDiagnosticoTexto', () => {
       numeroPolea: 3,
       tempIzquierda: 17.4,
       tempDerecha: 20.7,
-      condicion: 'NORMAL',
+      condicion: 'BUENO',
     })
     expect(texto).toContain('polea 3')
     expect(texto).toContain('17.4°C')
     expect(texto).toContain('20.7°C')
-    expect(texto).toContain('Condición NORMAL')
+    expect(texto).toContain('Condición BUENO')
   })
 })

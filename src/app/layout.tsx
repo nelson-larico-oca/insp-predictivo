@@ -4,8 +4,8 @@ import { Providers } from './Providers'
 import { NavBar } from '@/components/NavBar'
 
 export const metadata: Metadata = {
-  title: 'Inspección Predictiva - Reportes de Termografía',
-  description: 'Gestión de fajas y reportes de termografía de chumaceras',
+  title: 'Reportes de Termografía',
+  description: 'Gestión y reportes de termografía de chumaceras',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

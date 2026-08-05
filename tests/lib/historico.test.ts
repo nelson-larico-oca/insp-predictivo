@@ -1,12 +1,15 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { prisma } from '../../src/lib/prisma'
 import { createFaja } from '../../src/server/actions/fajas'
 import { createReporte } from '../../src/server/actions/reportes'
 import { getHistoricoByFaja } from '../../src/lib/historico'
+import { DEFAULT_CRITERIOS } from '../../src/lib/criterios'
+import { setActor, ADMIN_ACTOR } from '../helpers/actor'
 
 describe('getHistoricoByFaja', () => {
+  beforeEach(() => setActor(ADMIN_ACTOR))
   afterEach(async () => {
-    await prisma.faja.deleteMany({ where: { tag: { startsWith: '6666' } } })
+    await prisma.faja.deleteMany({ where: { tag: { startsWith: '5555' } } })
     await prisma.cliente.deleteMany({ where: { nombre: 'Test Cliente Historico' } })
     await prisma.contratista.deleteMany({ where: { nombre: 'Test Contratista Historico' } })
   })
@@ -17,11 +20,11 @@ describe('getHistoricoByFaja', () => {
     const faja = await createFaja({
       clienteId: cliente.id,
       contratistaId: contratista.id,
-      area: '6666',
+      area: '5555',
       nombre: 'CV001',
       lugar: 'MOQUEGUA',
       numeroPoleas: 1,
-      createdByUserId: 'test-user',
+      criterios: DEFAULT_CRITERIOS,
     })
     const polea = await prisma.polea.findFirstOrThrow({ where: { fajaId: faja.id } })
 
@@ -29,17 +32,17 @@ describe('getHistoricoByFaja', () => {
       poleaId: polea.id,
       fotoIzquierdaUrl: 'https://example.com/i.jpg',
       fotoDerechaUrl: 'https://example.com/d.jpg',
-      condicion: 'NORMAL' as const,
+      condicion: 'BUENO' as const,
       diagnosticoTexto: 'texto',
     }
     await createReporte({
       fajaId: faja.id, fecha: new Date('2026-02-17'), especialista: 'X', supervisor: 'Y',
-      numeroAvisoSAP: '1', createdByUserId: 'test-user',
+      numeroAvisoSAP: '1',
       lecturas: [{ ...lecturaInput, tempIzquierda: 22.8, tempDerecha: 26.2 }],
     })
     await createReporte({
       fajaId: faja.id, fecha: new Date('2026-08-02'), especialista: 'X', supervisor: 'Y',
-      numeroAvisoSAP: '2', createdByUserId: 'test-user',
+      numeroAvisoSAP: '2',
       lecturas: [{ ...lecturaInput, tempIzquierda: 32.4, tempDerecha: 22.5 }],
     })
 

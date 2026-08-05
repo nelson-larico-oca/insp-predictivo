@@ -1,7 +1,9 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { prisma } from '../../src/lib/prisma'
 import { createFaja, getFajaById } from '../../src/server/actions/fajas'
 import { createReporte, getReporteById, deleteReporte } from '../../src/server/actions/reportes'
+import { DEFAULT_CRITERIOS } from '../../src/lib/criterios'
+import { setActor, ADMIN_ACTOR } from '../helpers/actor'
 
 async function setupFaja() {
   const cliente = await prisma.cliente.create({ data: { nombre: 'Test Cliente Reporte' } })
@@ -13,12 +15,13 @@ async function setupFaja() {
     nombre: 'CV001',
     lugar: 'MOQUEGUA',
     numeroPoleas: 2,
-    createdByUserId: 'test-user',
+    criterios: DEFAULT_CRITERIOS,
   })
   return getFajaById(faja.id)
 }
 
 describe('createReporte', () => {
+  beforeEach(() => setActor(ADMIN_ACTOR))
   afterEach(async () => {
     await prisma.faja.deleteMany({ where: { tag: { startsWith: '7777' } } })
     await prisma.cliente.deleteMany({ where: { nombre: 'Test Cliente Reporte' } })
@@ -35,19 +38,18 @@ describe('createReporte', () => {
       especialista: 'Nelson Larico',
       supervisor: 'Rolando Aliaga',
       numeroAvisoSAP: '4016597449',
-      createdByUserId: 'test-user',
       lecturas: faja.poleas.map((polea, index) => ({
         poleaId: polea.id,
         tempIzquierda: 20,
         tempDerecha: 21,
         fotoIzquierdaUrl: 'https://example.com/i.jpg',
         fotoDerechaUrl: 'https://example.com/d.jpg',
-        condicion: index === 0 ? ('TOLERABLE' as const) : ('NORMAL' as const),
+        condicion: index === 0 ? ('ACEPTABLE' as const) : ('BUENO' as const),
         diagnosticoTexto: `texto polea ${polea.numero}`,
       })),
     })
 
-    expect(reporte.condicionGeneral).toBe('TOLERABLE')
+    expect(reporte.condicionGeneral).toBe('ACEPTABLE')
 
     const detalle = await getReporteById(reporte.id)
     expect(detalle?.lecturas).toHaveLength(2)
@@ -64,7 +66,6 @@ describe('createReporte', () => {
         especialista: 'X',
         supervisor: 'Y',
         numeroAvisoSAP: '123',
-        createdByUserId: 'test-user',
         lecturas: [
           {
             poleaId: faja.poleas[0].id,
@@ -72,7 +73,7 @@ describe('createReporte', () => {
             tempDerecha: 21,
             fotoIzquierdaUrl: 'https://example.com/i.jpg',
             fotoDerechaUrl: 'https://example.com/d.jpg',
-            condicion: 'NORMAL',
+            condicion: 'BUENO',
             diagnosticoTexto: 'texto',
           },
         ],
@@ -90,14 +91,13 @@ describe('createReporte', () => {
       especialista: 'X',
       supervisor: 'Y',
       numeroAvisoSAP: '123',
-      createdByUserId: 'test-user',
       lecturas: faja.poleas.map((polea) => ({
         poleaId: polea.id,
         tempIzquierda: 20,
         tempDerecha: 21,
         fotoIzquierdaUrl: 'https://example.com/i.jpg',
         fotoDerechaUrl: 'https://example.com/d.jpg',
-        condicion: 'NORMAL' as const,
+        condicion: 'BUENO' as const,
         diagnosticoTexto: 'texto',
       })),
     })
