@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteReporte } from '@/server/actions/reportes'
 
-export function DeleteReporteButton({ reporteId, fajaId }: { reporteId: string; fajaId: string }) {
+export function DeleteReporteButton({ reporteId, fajaTag }: { reporteId: string; fajaTag: string }) {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
 
@@ -23,7 +23,7 @@ export function DeleteReporteButton({ reporteId, fajaId }: { reporteId: string; 
         <button
           onClick={async () => {
             await deleteReporte(reporteId)
-            router.push(`/fajas/${fajaId}`)
+            router.push(`/fajas/${encodeURIComponent(fajaTag)}`)
           }}
           className="rounded bg-red-600 px-3 py-2 text-white"
         >

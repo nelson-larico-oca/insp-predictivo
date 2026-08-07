@@ -62,7 +62,7 @@ export async function createReporte(input: CreateReporteInput): Promise<Reporte>
       lecturas: { create: input.lecturas },
     },
   })
-  safeRevalidatePath(`/fajas/${input.fajaId}`)
+  safeRevalidatePath(`/fajas/${faja.tag}`)
   return reporte
 }
 
@@ -93,5 +93,5 @@ export async function deleteReporte(id: string): Promise<void> {
     throw new Error('No autorizado para eliminar este reporte')
   }
   await prisma.reporte.delete({ where: { id } })
-  safeRevalidatePath(`/fajas/${reporte.fajaId}`)
+  safeRevalidatePath(`/fajas/${reporte.faja.tag}`)
 }

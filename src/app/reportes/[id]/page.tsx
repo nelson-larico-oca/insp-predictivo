@@ -17,7 +17,7 @@ export default async function ReporteDetailPage({ params }: { params: { id: stri
 
   return (
     <main className="mx-auto max-w-3xl space-y-4 p-4 sm:p-6">
-      <Link href={`/fajas/${reporte.fajaId}`} className="text-sm text-gray-500 hover:text-blue-700">
+      <Link href={`/fajas/${encodeURIComponent(reporte.faja.tag)}`} className="text-sm text-gray-500 hover:text-blue-700">
         ← Volver a {reporte.faja.tag}
       </Link>
       <ReporteHeader reporte={reporte} />
@@ -36,7 +36,7 @@ export default async function ReporteDetailPage({ params }: { params: { id: stri
         >
           Descargar PDF
         </a>
-        {canDelete && <DeleteReporteButton reporteId={reporte.id} fajaId={reporte.fajaId} />}
+        {canDelete && <DeleteReporteButton reporteId={reporte.id} fajaTag={reporte.faja.tag} />}
       </div>
     </main>
   )

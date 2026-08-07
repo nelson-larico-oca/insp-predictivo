@@ -114,6 +114,22 @@ export async function getFajaById(id: string) {
   return faja
 }
 
+export async function getFajaByTag(tag: string) {
+  const user = await requireUser()
+  const faja = await prisma.faja.findUnique({
+    where: { tag },
+    include: {
+      cliente: true,
+      contratista: true,
+      poleas: { orderBy: { numero: 'asc' } },
+      criterios: true,
+      reportes: { orderBy: { fecha: 'desc' } },
+    },
+  })
+  if (!faja || !canReadFaja(user, faja)) return null
+  return faja
+}
+
 export type FajaConDetalle = NonNullable<Awaited<ReturnType<typeof getFajaById>>>
 
 export async function updatePoleaTipo(poleaId: string, tipo: string) {
@@ -123,7 +139,7 @@ export async function updatePoleaTipo(poleaId: string, tipo: string) {
     throw new Error('No autorizado para editar esta faja')
   }
   const updated = await prisma.polea.update({ where: { id: poleaId }, data: { tipo } })
-  safeRevalidatePath(`/fajas/${updated.fajaId}`)
+  safeRevalidatePath(`/fajas/${polea.faja.tag}`)
   return updated
 }
 
@@ -137,7 +153,7 @@ export async function updateFajaImagenes(
     throw new Error('No autorizado para editar esta faja')
   }
   const updated = await prisma.faja.update({ where: { id: fajaId }, data })
-  safeRevalidatePath(`/fajas/${fajaId}`)
+  safeRevalidatePath(`/fajas/${faja.tag}`)
   return updated
 }
 
@@ -154,7 +170,7 @@ export async function updateCriterio(
     throw new Error('No autorizado para editar esta faja')
   }
   const updated = await prisma.criterioAceptacion.update({ where: { id: criterioId }, data })
-  safeRevalidatePath(`/fajas/${updated.fajaId}`)
+  safeRevalidatePath(`/fajas/${criterio.faja.tag}`)
   return updated
 }
 
@@ -186,7 +202,7 @@ export async function updateNumeroPoleas(fajaId: string, numeroPoleas: number) {
   }
 
   const updated = await prisma.faja.update({ where: { id: fajaId }, data: { numeroPoleas } })
-  safeRevalidatePath(`/fajas/${fajaId}`)
+  safeRevalidatePath(`/fajas/${faja.tag}`)
   return updated
 }
 

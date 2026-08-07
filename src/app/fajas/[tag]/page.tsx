@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getFajaById, countReportesByFaja } from '@/server/actions/fajas'
+import { getFajaByTag, countReportesByFaja } from '@/server/actions/fajas'
 import { getHistoricoByFaja } from '@/lib/historico'
 import { requireUser } from '@/lib/session'
 import { canCreateReporte, canManageFaja } from '@/lib/permissions'
@@ -13,9 +13,9 @@ import { HistoricoTable } from '@/components/HistoricoTable'
 import { TrendChart } from '@/components/TrendChart'
 import { CondicionBadge } from '@/components/CondicionBadge'
 
-export default async function FajaDetailPage({ params }: { params: { id: string } }) {
+export default async function FajaDetailPage({ params }: { params: { tag: string } }) {
   const user = await requireUser()
-  const faja = await getFajaById(params.id)
+  const faja = await getFajaByTag(params.tag)
   if (!faja) notFound()
   const reportesCount = await countReportesByFaja(faja.id)
   const historico = await getHistoricoByFaja(faja.id)
@@ -35,7 +35,7 @@ export default async function FajaDetailPage({ params }: { params: { id: string 
         </div>
         {canReport && (
           <Link
-            href={`/fajas/${faja.id}/reportes/new`}
+            href={`/fajas/${encodeURIComponent(faja.tag)}/reportes/new`}
             className="rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700"
           >
             + Crear reporte

@@ -2,17 +2,17 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getFajaById } from '@/server/actions/fajas'
+import { getFajaByTag } from '@/server/actions/fajas'
 import { requireUser } from '@/lib/session'
 import { canCreateReporte } from '@/lib/permissions'
 import { listSupervisoresDeContratista } from '@/server/actions/users'
 import { ReporteForm } from './ReporteForm'
 
-export default async function NewReportePage({ params }: { params: { id: string } }) {
+export default async function NewReportePage({ params }: { params: { tag: string } }) {
   const user = await requireUser()
-  const faja = await getFajaById(params.id)
+  const faja = await getFajaByTag(params.tag)
   if (!faja) notFound()
-  if (!canCreateReporte(user, faja)) redirect(`/fajas/${faja.id}`)
+  if (!canCreateReporte(user, faja)) redirect(`/fajas/${encodeURIComponent(faja.tag)}`)
 
   const [session, supervisores] = await Promise.all([
     getServerSession(authOptions),
@@ -21,7 +21,7 @@ export default async function NewReportePage({ params }: { params: { id: string 
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
-      <Link href={`/fajas/${faja.id}`} className="text-sm text-gray-500 hover:text-blue-700">
+      <Link href={`/fajas/${encodeURIComponent(faja.tag)}`} className="text-sm text-gray-500 hover:text-blue-700">
         ← Volver a {faja.tag}
       </Link>
       <h1 className="text-xl font-semibold">Nuevo reporte — {faja.tag}</h1>

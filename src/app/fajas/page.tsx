@@ -30,7 +30,7 @@ export default async function FajasPage() {
           {fajas.map((faja) => (
             <li key={faja.id}>
               <Link
-                href={`/fajas/${faja.id}`}
+                href={`/fajas/${encodeURIComponent(faja.tag)}`}
                 className="flex items-center gap-3 rounded border bg-white p-3 transition hover:border-blue-400 hover:shadow-sm"
               >
                 {faja.cliente.logoUrl ? (

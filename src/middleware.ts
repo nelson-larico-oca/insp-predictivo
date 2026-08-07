@@ -20,7 +20,17 @@ export default withAuth(
 
     return NextResponse.next()
   },
-  { pages: { signIn: '/login' } }
+  {
+    pages: { signIn: '/login' },
+    callbacks: {
+      // La vista de impresión la navega Puppeteer sin cookies de sesión; se protege
+      // con su propio token HMAC (ver printToken.ts), no con sesión de usuario.
+      authorized: ({ token, req }) => {
+        if (/^\/reportes\/[^/]+\/print/.test(req.nextUrl.pathname)) return true
+        return !!token
+      },
+    },
+  }
 )
 
 export const config = {

@@ -57,7 +57,7 @@ export function FajaForm({ clientes, contratistas, lockedContratista }: FajaForm
         esquemaUrl,
         criterios,
       })
-      router.push(`/fajas/${faja.id}`)
+      router.push(`/fajas/${encodeURIComponent(faja.tag)}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear la faja')
       setSubmitting(false)

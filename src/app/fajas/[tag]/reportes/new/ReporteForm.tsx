@@ -150,7 +150,7 @@ export function ReporteForm({ faja, currentUserName, supervisores }: ReporteForm
           }
         }),
       })
-      router.push(`/fajas/${faja.id}`)
+      router.push(`/fajas/${encodeURIComponent(faja.tag)}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear el reporte')
     } finally {
@@ -204,9 +204,10 @@ export function ReporteForm({ faja, currentUserName, supervisores }: ReporteForm
         </label>
         <label className="sm:col-span-2 text-sm">
           <span className="mb-1 block text-gray-600">Observación general</span>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <textarea
               className="w-full rounded border px-3 py-2"
+              rows={4}
               value={observacionGeneral}
               onChange={(e) => setObservacionGeneral(e.target.value)}
             />
