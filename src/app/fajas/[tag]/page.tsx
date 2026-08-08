@@ -83,7 +83,7 @@ export default async function FajaDetailPage({ params }: { params: { tag: string
           <p className="rounded border border-dashed p-4 text-center text-sm text-gray-500">
             Todavía no hay reportes para esta faja.{' '}
             {canReport && (
-              <Link href={`/fajas/${faja.id}/reportes/new`} className="font-medium text-blue-700 hover:underline">
+              <Link href={`/fajas/${encodeURIComponent(faja.tag)}/reportes/new`} className="font-medium text-blue-700 hover:underline">
                 Crear el primero →
               </Link>
             )}
